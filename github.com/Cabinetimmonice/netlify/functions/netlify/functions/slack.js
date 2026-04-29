@@ -4,7 +4,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: "Method not allowed" };
   try {
     const { text } = JSON.parse(event.body);
-    await fetch("https://hooks.slack.com/services/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", {
+    await fetch("https://hooks.slack.com/services/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", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
