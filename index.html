@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Générateur d'annonce — Cabinet Immo Nice</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F2EE; --surface: #FFFFFF; --surface2: #F9F7F4;
+    --border: #E4DDD4; --text: #1A1714; --muted: #7A7168;
+    --accent: #2C4A3E; --accent-light: #E8F0EC; --accent2: #B8860B;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); min-height: 100vh; }
+  .app { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+
+  .form-panel { padding: 36px; overflow-y: auto; border-right: 1px solid var(--border); }
+  .form-header { margin-bottom: 28px; }
+  .form-header .label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .form-header h1 { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); line-height: 1.2; }
+  .form-header p { margin-top: 6px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  .section { margin-bottom: 24px; }
+  .section-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 500; margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px solid var(--accent-light); }
+
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .field .hint { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; color: var(--text); transition: border-color 0.15s;
+    -webkit-appearance: none; appearance: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+  .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A7168' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  .addr-wrap { position: relative; }
+  .addr-wrap input { padding-right: 40px; }
+  .addr-btn { position: absolute; right: 0; top: 0; height: 100%; width: 38px; background: none; border: none; cursor: pointer; color: var(--muted); font-size: 16px; display: flex; align-items: center; justify-content: center; transition: color 0.15s; }
+  .addr-btn:hover { color: var(--accent); }
+  .addr-suggestions { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; display: none; }
+  .addr-suggestions.open { display: block; }
+  .addr-sugg-item { padding: 10px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); line-height: 1.4; }
+  .addr-sugg-item:last-child { border-bottom: none; }
+  .addr-sugg-item:hover { background: var(--accent-light); }
+  .addr-sugg-main { font-weight: 500; }
+  .addr-sugg-sub { font-size: 11px; color: var(--muted); }
+  .geo-info { margin-top: 6px; background: var(--accent-light); border-radius: 6px; padding: 8px 10px; font-size: 12px; color: var(--accent); display: none; line-height: 1.6; }
+
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .check-item { display: flex; align-items: center; gap: 7px; padding: 7px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.12s; user-select: none; font-size: 13px; color: var(--text); }
+  .check-item:hover { border-color: var(--accent); background: var(--accent-light); }
+  .check-item input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .check-item.checked { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+  .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; margin-bottom: 12px; }
+  .toggle-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 22px; transition: 0.2s; cursor: pointer; }
+  .toggle-slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+  .btn-generate {
+    width: 100%; padding: 14px; background: var(--accent); color: white;
+    border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 8px;
+    transition: background 0.15s, transform 0.1s; letter-spacing: 0.02em;
+  }
+  .btn-generate:hover { background: #1e3529; }
+  .btn-generate:active { transform: scale(0.99); }
+  .btn-generate:disabled { background: var(--muted); cursor: not-allowed; }
+
+  .output-panel { padding: 36px; background: var(--surface2); overflow-y: auto; }
+  .output-header { margin-bottom: 20px; }
+  .output-header .label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .output-header h2 { font-family: 'DM Serif Display', serif; font-size: 24px; }
+  .output-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; color: var(--muted); text-align: center; }
+  .output-empty .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.3; }
+  .output-empty p { font-size: 14px; line-height: 1.6; }
+  .output-box { display: none; }
+  .output-box.visible { display: block; }
+  .char-counter { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .char-count { font-size: 13px; color: var(--muted); }
+  .char-count span { font-weight: 500; color: var(--text); }
+  .char-bar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 14px; overflow: hidden; }
+  .char-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; background: var(--accent); }
+  .char-bar-fill.ok { background: #2C7A4B; }
+  .char-bar-fill.warn { background: var(--accent2); }
+  .annonce-text {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; font-size: 14px; line-height: 1.8; color: var(--text);
+    white-space: pre-wrap; word-break: break-word; margin-bottom: 14px; min-height: 200px;
+  }
+  .output-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-action {
+    flex: 1; padding: 10px 14px; border-radius: var(--radius); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); transition: all 0.15s; text-align: center;
+  }
+  .btn-action:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .btn-action.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-action.primary:hover { background: #1e3529; }
+  .slack-preview { background: #1A1D21; border-radius: var(--radius); padding: 16px; margin-top: 14px; display: none; }
+  .slack-preview.visible { display: block; }
+  .slack-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .slack-avatar { width: 30px; height: 30px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .slack-name { color: white; font-weight: 500; font-size: 13px; }
+  .slack-time { color: #6B7280; font-size: 11px; }
+  .slack-message { color: #D1D5DB; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .slack-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #6B7280; margin-bottom: 8px; }
+  .loading { display: none; align-items: center; gap: 10px; padding: 20px; color: var(--muted); font-size: 14px; }
+  .loading.visible { display: flex; }
+  .dot-anim { display: flex; gap: 4px; }
+  .dot-anim span { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .dot-anim span:nth-child(2) { animation-delay: 0.2s; }
+  .dot-anim span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .form-panel { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="form-panel">
+    <div class="form-header">
+      <div class="label">Outil interne — Cabinet Immo Nice</div>
+      <h1>Générateur<br>d'annonce</h1>
+      <p>Remplis le formulaire. Le texte est généré automatiquement.</p>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Type de bien</div>
+      <div class="field row2">
+        <div>
+          <label>Type de bien</label>
+          <select id="type">
+            <option value="">Sélectionner</option>
+            <option>Appartement</option>
+            <option>Villa</option>
+            <option>Maison</option>
+            <option>Duplex</option>
+            <option>Penthouse</option>
+            <option>Studio</option>
+            <option>Loft</option>
+            <option>Local commercial</option>
+            <option>Terrain</option>
+          </select>
+        </div>
+        <div>
+          <label>Transaction</label>
+          <select id="transaction">
+            <option value="vente">Vente</option>
+            <option value="location">Location</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Localisation</div>
+      <div class="field">
+        <label>Adresse du bien</label>
+        <div class="hint">Tape l'adresse — tramway, commerces et écoles à proximité seront détectés automatiquement</div>
+        <div class="addr-wrap">
+          <input type="text" id="adresse" placeholder="ex : 12 avenue de Cimiez, Nice" autocomplete="off" oninput="rechercheAdresse(this.value)">
+          <button class="addr-btn" onclick="geolocMe()" title="Utiliser ma position">📍</button>
+          <div class="addr-suggestions" id="addr-suggestions"></div>
+        </div>
+        <div class="geo-info" id="geo-info"></div>
+      </div>
+      <div class="field row2">
+        <div>
+          <label>Quartier / Secteur</label>
+          <input type="text" id="quartier" placeholder="ex : Cimiez, Mont Boron, Carré d'Or">
+        </div>
+        <div>
+          <label>Ville</label>
+          <input type="text" id="ville" value="Nice">
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Caractéristiques du bien</div>
+      <div class="field row3">
+        <div>
+          <label>Surface habitable (m²)</label>
+          <input type="number" id="surface" placeholder="85">
+        </div>
+        <div>
+          <label>Surface Carrez (m²)</label>
+          <input type="number" id="surface_carrez" placeholder="83">
+        </div>
+        <div>
+          <label>Nb pièces</label>
+          <input type="number" id="pieces" placeholder="4">
+        </div>
+      </div>
+      <div class="field row3">
+        <div>
+          <label>Nb chambres</label>
+          <input type="number" id="chambres" placeholder="2">
+        </div>
+        <div>
+          <label>Exposition</label>
+          <select id="exposition">
+            <option value="">—</option>
+            <option>Plein sud</option>
+            <option>Sud-Est</option>
+            <option>Sud-Ouest</option>
+            <option>Est</option>
+            <option>Ouest</option>
+            <option>Nord</option>
+            <option>Traversant</option>
+          </select>
+        </div>
+        <div>
+          <label>État général</label>
+          <select id="etat">
+            <option value="">—</option>
+            <option>Très bon état</option>
+            <option>Entièrement rénové</option>
+            <option>Bon état</option>
+            <option>À rafraîchir</option>
+            <option>Travaux à prévoir</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field row2">
+        <div>
+          <label>Étage du bien</label>
+          <select id="etage_bien">
+            <option value="">—</option>
+            <option value="RDC">Rez-de-chaussée</option>
+            <option value="1">1er étage</option>
+            <option value="2">2e étage</option>
+            <option value="3">3e étage</option>
+            <option value="4">4e étage</option>
+            <option value="5">5e étage</option>
+            <option value="6">6e étage</option>
+            <option value="7">7e étage et +</option>
+            <option value="dernier">Dernier étage</option>
+          </select>
+        </div>
+        <div>
+          <label>Nb d'étages du bâtiment</label>
+          <select id="etage_bat">
+            <option value="">—</option>
+            <option value="1">R+1</option>
+            <option value="2">R+2</option>
+            <option value="3">R+3</option>
+            <option value="4">R+4</option>
+            <option value="5">R+5</option>
+            <option value="6">R+6</option>
+            <option value="7">R+7 et +</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="ascenseur">
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Ascenseur dans le bâtiment</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Description pièce par pièce</div>
+      <div class="field">
+        <label>Séjour / Salon</label>
+        <input type="text" id="sejour" placeholder="ex : 28 m², baies vitrées donnant sur la terrasse">
+      </div>
+      <div class="field">
+        <label>Cuisine</label>
+        <input type="text" id="cuisine" placeholder="ex : équipée, indépendante, ouverte sur séjour…">
+      </div>
+      <div class="field">
+        <label>Chambres</label>
+        <input type="text" id="chambre_desc" placeholder="ex : 2 chambres de 12 et 14 m², rangements intégrés">
+      </div>
+      <div class="field">
+        <label>Salle(s) de bain</label>
+        <input type="text" id="sdb" placeholder="ex : douche à l'italienne, baignoire, double vasque">
+      </div>
+      <div class="field">
+        <label>Extérieur (terrasse, jardin, piscine…)</label>
+        <input type="text" id="exterieur" placeholder="ex : terrasse de 18 m² plein sud, vue dégagée">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Équipements & prestations</div>
+      <div class="check-grid" id="equipements-grid">
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Parking"> Parking</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Cave"> Cave</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Gardien"> Gardien</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Digicode"> Digicode</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Interphone"> Interphone</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Vidéophone"> Vidéophone</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Double vitrage"> Double vitrage</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Volets roulants électriques"> Volets électriques</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Cuisine équipée"> Cuisine équipée</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Dressing"> Dressing</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Piscine"> Piscine</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Jacuzzi"> Jacuzzi</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Terrasse"> Terrasse</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Balcon"> Balcon</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Jardin privatif"> Jardin privatif</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Cellier"> Cellier</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Climatisation"> Climatisation</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Pompe à chaleur"> Pompe à chaleur</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Cheminée"> Cheminée</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Parquet massif"> Parquet massif</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Carrelage"> Carrelage</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Moulures et hauts plafonds"> Moulures / Hauts plafonds</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Box fermé"> Box fermé</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Local vélos"> Local vélos</label>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>Équipements supplémentaires</label>
+        <input type="text" id="equipements_libre" placeholder="ex : porte blindée, vidéosurveillance, store banne…">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Atouts principaux du bien</div>
+      <div class="hint" style="margin-bottom:10px; font-size:12px; color:var(--muted);">Ce qui différencie ce bien des autres — max 4 sélections</div>
+      <div class="check-grid" id="atouts-grid">
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Vue mer"> Vue mer</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Vue mer panoramique"> Vue mer panoramique</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Vue sur les collines"> Vue sur les collines</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Vue sur parc arboré"> Vue sur parc</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Grande luminosité"> Grande luminosité</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Position dominante"> Position dominante</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Dernier étage"> Dernier étage</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Calme absolu"> Calme absolu</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Rez-de-jardin"> Rez-de-jardin</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Bien traversant"> Bien traversant</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Volumes généreux"> Volumes généreux</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Hauts plafonds"> Hauts plafonds</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Rénovation haut de gamme"> Rénovation haut de gamme</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Résidence sécurisée"> Résidence sécurisée</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Proche Promenade des Anglais"> Proche Promenade</label>
+        <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox" value="Proche Vieux-Nice"> Proche Vieux-Nice</label>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>Atouts supplémentaires</label>
+        <input type="text" id="atouts_libre" placeholder="ex : accès direct à la plage, garage double, cave voûtée…">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Informations financières & légales</div>
+      <div class="field row2">
+        <div>
+          <label>Prix de vente / Loyer</label>
+          <input type="text" id="prix" placeholder="ex : 420 000 €">
+        </div>
+        <div>
+          <label>Charges mensuelles</label>
+          <input type="text" id="charges" placeholder="ex : 180 €/mois">
+        </div>
+      </div>
+      <div class="field row3">
+        <div>
+          <label>DPE</label>
+          <select id="dpe">
+            <option value="">—</option>
+            <option>A</option><option>B</option><option>C</option>
+            <option>D</option><option>E</option><option>F</option><option>G</option>
+          </select>
+        </div>
+        <div>
+          <label>GES</label>
+          <select id="ges">
+            <option value="">—</option>
+            <option>A</option><option>B</option><option>C</option>
+            <option>D</option><option>E</option><option>F</option><option>G</option>
+          </select>
+        </div>
+        <div>
+          <label>Taxe foncière</label>
+          <input type="text" id="taxe" placeholder="ex : 1 200 €/an">
+        </div>
+      </div>
+      <div class="field row2">
+        <div>
+          <label>Honoraires agence</label>
+          <input type="text" id="honoraires" placeholder="ex : 4% TTC à charge acquéreur">
+        </div>
+        <div>
+          <label>Négociateur (prénom)</label>
+          <input type="text" id="negociateur" placeholder="ex : Thomas">
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-generate" onclick="generer()">Générer l'annonce →</button>
+  </div>
+
+  <div class="output-panel">
+    <div class="output-header">
+      <div class="label">Résultat</div>
+      <h2>Texte publicitaire</h2>
+    </div>
+    <div class="output-empty" id="empty-state">
+      <div class="icon">✦</div>
+      <p>Remplis le formulaire<br>et clique sur "Générer l'annonce"</p>
+    </div>
+    <div class="loading" id="loading">
+      <div class="dot-anim"><span></span><span></span><span></span></div>
+      Génération en cours…
+    </div>
+    <div class="output-box" id="output-box">
+      <div class="char-counter">
+        <div class="char-count">Longueur : <span id="char-count">0</span> caractères</div>
+        <div class="char-count" id="char-status"></div>
+      </div>
+      <div class="char-bar"><div class="char-bar-fill" id="char-bar"></div></div>
+      <div class="annonce-text" id="annonce-text" contenteditable="true"></div>
+      <div class="output-actions">
+        <button class="btn-action" onclick="copierTexte()">Copier le texte</button>
+        <button class="btn-action primary" id="btn-slack" onclick="envoyerSlack()">Envoyer sur Slack →</button>
+        <button class="btn-action" onclick="resetForm()">Nouvelle annonce</button>
+      </div>
+      <div class="slack-preview" id="slack-preview">
+        <div class="slack-label">Aperçu message Slack</div>
+        <div class="slack-header">
+          <div class="slack-avatar">🏠</div>
+          <div>
+            <div class="slack-name">Annonces Bot</div>
+            <div class="slack-time">Aujourd'hui à <span id="slack-time"></span></div>
+          </div>
+        </div>
+        <div class="slack-message" id="slack-text"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+function g(id) { return (document.getElementById(id).value || '').trim(); }
+
+function toggleCheck(label) {
+  const cb = label.querySelector('input[type=checkbox]');
+  cb.checked = !cb.checked;
+  label.classList.toggle('checked', cb.checked);
+}
+
+function getChecked(gridId) {
+  return Array.from(document.querySelectorAll('#' + gridId + ' input[type=checkbox]:checked'))
+    .map(cb => cb.value).join(', ');
+}
+
+let geoLat = null, geoLng = null, geoDetails = null, debounceTimer = null;
+
+async function rechercheAdresse(val) {
+  clearTimeout(debounceTimer);
+  const sug = document.getElementById('addr-suggestions');
+  if (val.length < 4) { sug.classList.remove('open'); return; }
+  debounceTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('https://api-adresse.data.gouv.fr/search/?q=' + encodeURIComponent(val) + '&limit=5');
+      const data = await r.json();
+      afficherSuggestions(data.features || []);
+    } catch(e) { sug.classList.remove('open'); }
+  }, 350);
+}
+
+function afficherSuggestions(features) {
+  const sug = document.getElementById('addr-suggestions');
+  if (!features.length) { sug.classList.remove('open'); return; }
+  sug.innerHTML = '';
+  features.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'addr-sugg-item';
+    div.innerHTML = '<div class="addr-sugg-main">' + (f.properties.name || f.properties.label) + '</div><div class="addr-sugg-sub">' + (f.properties.postcode || '') + ' ' + (f.properties.city || '') + '</div>';
+    div.onclick = () => selectionnerAdresse(f);
+    sug.appendChild(div);
+  });
+  sug.classList.add('open');
+}
+
+async function selectionnerAdresse(feature) {
+  const p = feature.properties;
+  document.getElementById('adresse').value = p.label;
+  document.getElementById('addr-suggestions').classList.remove('open');
+  geoLat = feature.geometry.coordinates[1];
+  geoLng = feature.geometry.coordinates[0];
+  if (p.city) document.getElementById('ville').value = p.city;
+  await chargerProximite(geoLat, geoLng);
+}
+
+async function geolocMe() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async pos => {
+    geoLat = pos.coords.latitude;
+    geoLng = pos.coords.longitude;
+    try {
+      const r = await fetch('https://api-adresse.data.gouv.fr/reverse/?lat=' + geoLat + '&lon=' + geoLng);
+      const data = await r.json();
+      if (data.features && data.features[0]) {
+        const p = data.features[0].properties;
+        document.getElementById('adresse').value = p.label;
+        if (p.city) document.getElementById('ville').value = p.city;
+      }
+      await chargerProximite(geoLat, geoLng);
+    } catch(e) {}
+  });
+}
+
+async function chargerProximite(lat, lng) {
+  const info = document.getElementById('geo-info');
+  info.style.display = 'block';
+  info.textContent = 'Recherche des commodités à proximité…';
+  const query = '[out:json][timeout:15];(node["railway"="tram_stop"](around:700,' + lat + ',' + lng + ');node["highway"="bus_stop"](around:400,' + lat + ',' + lng + ');node["amenity"="school"](around:500,' + lat + ',' + lng + ');node["amenity"="supermarket"](around:400,' + lat + ',' + lng + ');node["amenity"="pharmacy"](around:400,' + lat + ',' + lng + '););out body;';
+  try {
+    const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
+    const data = await r.json();
+    const el = data.elements || [];
+    const uniq = arr => arr.filter((v,i,a) => a.indexOf(v) === i);
+    const trams = uniq(el.filter(e => e.tags && e.tags.railway === 'tram_stop').map(e => e.tags.name).filter(Boolean)).slice(0,2);
+    const bus = uniq(el.filter(e => e.tags && e.tags.highway === 'bus_stop').map(e => e.tags.name).filter(Boolean)).slice(0,2);
+    const ecoles = uniq(el.filter(e => e.tags && e.tags.amenity === 'school').map(e => e.tags.name).filter(Boolean)).slice(0,2);
+    const supermarches = uniq(el.filter(e => e.tags && e.tags.amenity === 'supermarket').map(e => e.tags.name).filter(Boolean)).slice(0,2);
+    const pharmacies = el.filter(e => e.tags && e.tags.amenity === 'pharmacy').length;
+    let lines = [];
+    if (trams.length) lines.push('Tramway proche : ' + trams.join(', '));
+    if (bus.length) lines.push('Bus : ' + bus.join(', '));
+    if (ecoles.length) lines.push('Écoles : ' + ecoles.join(', '));
+    if (supermarches.length) lines.push('Commerces : ' + supermarches.join(', '));
+    if (pharmacies) lines.push(pharmacies + ' pharmacie(s)');
+    if (lines.length) {
+      geoDetails = lines.join(' | ');
+      info.innerHTML = '<strong>Détecté :</strong> ' + lines.join(' · ');
+    } else {
+      geoDetails = null;
+      info.textContent = 'Adresse enregistrée';
+    }
+  } catch(e) {
+    geoDetails = null;
+    info.textContent = 'Adresse enregistrée';
+  }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.addr-wrap')) document.getElementById('addr-suggestions').classList.remove('open');
+});
+
+async function generer() {
+  const type = g('type'), quartier = g('quartier'), surface = g('surface'), pieces = g('pieces');
+  if (!type || !quartier || !surface || !pieces) {
+    alert('Remplis au minimum : type de bien, quartier, surface et nombre de pièces.');
+    return;
+  }
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('output-box').classList.remove('visible');
+  document.getElementById('loading').classList.add('visible');
+  document.querySelector('.btn-generate').disabled = true;
+
+  const ascenseur = document.getElementById('ascenseur').checked;
+  const eb = g('etage_bien'), ebat = g('etage_bat');
+  let etagePhrase = '';
+  if (eb && ebat) etagePhrase = (eb === 'RDC' ? 'Rez-de-chaussée' : eb + 'e étage') + ' sur ' + ebat;
+  else if (eb) etagePhrase = eb === 'RDC' ? 'Rez-de-chaussée' : eb + 'e étage';
+
+  const equipements = [getChecked('equipements-grid'), g('equipements_libre')].filter(Boolean).join(', ');
+  const atouts = [getChecked('atouts-grid'), g('atouts_libre')].filter(Boolean).join(', ');
+
+  const lignes = [
+    'Type : ' + type, 'Transaction : ' + g('transaction'),
+    'Adresse : ' + (g('adresse') || quartier + ', ' + (g('ville')||'Nice')),
+    'Quartier : ' + quartier, 'Ville : ' + (g('ville')||'Nice'),
+    etagePhrase ? 'Étage : ' + etagePhrase : '',
+    'Ascenseur : ' + (ascenseur ? 'Oui' : 'Non'),
+    'Surface habitable : ' + surface + ' m²',
+    g('surface_carrez') ? 'Surface Carrez : ' + g('surface_carrez') + ' m²' : '',
+    'Pièces : ' + pieces,
+    g('chambres') ? 'Chambres : ' + g('chambres') : '',
+    g('exposition') ? 'Exposition : ' + g('exposition') : '',
+    g('etat') ? 'État : ' + g('etat') : '',
+    atouts ? 'Atouts : ' + atouts : '',
+    g('sejour') ? 'Séjour : ' + g('sejour') : '',
+    g('cuisine') ? 'Cuisine : ' + g('cuisine') : '',
+    g('chambre_desc') ? 'Chambres détail : ' + g('chambre_desc') : '',
+    g('sdb') ? 'SDB : ' + g('sdb') : '',
+    g('exterieur') ? 'Extérieur : ' + g('exterieur') : '',
+    equipements ? 'Équipements : ' + equipements : '',
+    geoDetails ? 'Proximité : ' + geoDetails : '',
+    g('prix') ? 'Prix : ' + g('prix') : '',
+    g('charges') ? 'Charges : ' + g('charges') : '',
+    g('dpe') ? 'DPE : ' + g('dpe') : '',
+    g('ges') ? 'GES : ' + g('ges') : '',
+    g('taxe') ? 'Taxe foncière : ' + g('taxe') : '',
+    g('honoraires') ? 'Honoraires : ' + g('honoraires') : '',
+  ].filter(Boolean).join(' | ');
+
+  const prompt = "Tu es le rédacteur attitré d'un cabinet immobilier haut de gamme à Nice. Style sobre, précis, professionnel style Barnes Zingraf. JAMAIS ces mots : magnifique, splendide, exceptionnel, rare, parfait, coup de coeur, superbe. Minimum 2000 caractères. Structure : 1-Titre 2-Introduction avec étage et atout principal 3-Visite pièce par pièce 4-Équipements en prose 5-Localisation avec noms exacts 6-Infos pratiques 7-Contact toujours : Bien disponible à la visite sur rendez-vous 7 jours sur 7. Commence directement par le titre, pas de Markdown.\n\nDonnées du bien :\n" + lignes;
+
+  try {
+    const response = await fetch('/.netlify/functions/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt })
+    });
+    const result = await response.json();
+    const texte = result.text;
+    document.getElementById('loading').classList.remove('visible');
+    document.getElementById('output-box').classList.add('visible');
+    document.querySelector('.btn-generate').disabled = false;
+    document.getElementById('annonce-text').textContent = texte;
+    majCompteur(texte);
+    
+    // Envoi automatique sur Slack
+    const negStr = (document.getElementById('negociateur').value || 'N/A').trim();
+    const typeStr = (document.getElementById('type').value || '').trim();
+    const piecesStr = (document.getElementById('pieces').value || '').trim();
+    const surfStr = (document.getElementById('surface').value || '').trim();
+    const quartStr = (document.getElementById('quartier').value || '').trim();
+    const slackMsg = '\u{1F4CB} *Nouveau texte pub*\n\u{1F464} Négociateur : ' + negStr + '\n\u{1F3E0} ' + typeStr + ' ' + piecesStr + 'P — ' + surfStr + 'm² — ' + quartStr + '\n\n' + texte;
+    fetch('/.netlify/functions/slack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: slackMsg })
+    }).catch(() => {});
+  } catch(e) {
+    document.getElementById('loading').classList.remove('visible');
+    document.getElementById('empty-state').style.display = 'flex';
+    document.querySelector('.btn-generate').disabled = false;
+    alert('Erreur de génération : ' + e.message);
+  }
+}
+
+function majCompteur(texte) {
+  const count = texte.length;
+  document.getElementById('char-count').textContent = count.toLocaleString('fr-FR');
+  const bar = document.getElementById('char-bar');
+  const status = document.getElementById('char-status');
+  bar.style.width = Math.min((count / 2500) * 100, 100) + '%';
+  if (count < 2000) {
+    bar.className = 'char-bar-fill warn';
+    status.textContent = '⚠ Moins de 2000 car.';
+    status.style.color = '#B8860B';
+  } else {
+    bar.className = 'char-bar-fill ok';
+    status.textContent = '✓ Longueur optimale';
+    status.style.color = '#2C7A4B';
+  }
+}
+
+document.getElementById('annonce-text').addEventListener('input', function() { majCompteur(this.textContent); });
+
+function copierTexte() {
+  navigator.clipboard.writeText(document.getElementById('annonce-text').textContent).then(() => {
+    const btn = event.target;
+    const old = btn.textContent;
+    btn.textContent = 'Copié ✓';
+    setTimeout(() => btn.textContent = old, 2000);
+  });
+}
+
+function toggleSlack() {
+  const p = document.getElementById('slack-preview');
+  p.classList.toggle('visible');
+  event.target.textContent = p.classList.contains('visible') ? "Masquer l'aperçu" : 'Aperçu Slack';
+}
+
+function resetForm() {
+  document.querySelectorAll('input:not([type=checkbox]), select, textarea').forEach(el => {
+    el.value = el.id === 'ville' ? 'Nice' : '';
+  });
+  document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.check-item').forEach(l => l.classList.remove('checked'));
+  document.getElementById('ascenseur').checked = false;
+  document.getElementById('geo-info').style.display = 'none';
+  geoLat = null; geoLng = null; geoDetails = null;
+  document.getElementById('output-box').classList.remove('visible');
+  document.getElementById('slack-preview').classList.remove('visible');
+  document.getElementById('empty-state').style.display = 'flex';
+}
+</script>
+</body>
+</html>
